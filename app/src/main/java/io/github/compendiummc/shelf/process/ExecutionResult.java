@@ -1,6 +1,6 @@
 package io.github.compendiummc.shelf.process;
 
-public sealed interface ExecutionResult permits PatchResult {
+public sealed interface ExecutionResult permits CompileResult, PatchResult {
 
     int exitCode();
 
