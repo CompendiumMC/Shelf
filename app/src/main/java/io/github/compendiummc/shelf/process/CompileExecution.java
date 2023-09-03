@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public record CompileExecution(
     Path workingDir,
@@ -20,7 +21,8 @@ public record CompileExecution(
 
   @Override
   public CompileResult awaitResult() throws ExecutionFailedException {
-    String classpathJoined = libraries().stream()
+    Stream<Path> librariesStream = libraries().stream();
+    String classpathJoined = Stream.concat(Stream.of(paperJar()), librariesStream)
         .map(Path::toString)
         .collect(Collectors.joining(File.pathSeparator));
     try {
@@ -32,15 +34,26 @@ public record CompileExecution(
     try {
       Process process = new ProcessBuilder(
           nativeImagePath.toString(),
+          "-o",
+          "server",
           "-H:+BuildReport",
           "-Ob", // fast build
           "-H:IncludeResources=log4j2.+",
           "-H:ConfigurationFileDirectories=" + nativeImageConfiguration(),
           "-H:+ReportExceptionStackTraces",
+          "-H:IncludeResources=/data/.*", // accessed via FileSystem
+          "--no-fallback", // we don't want that
+          "--enable-url-protocols=https", // allow accessing URLs with https protocol
           "--trace-object-instantiation=com.sun.jmx.mbeanserver.JmxMBeanServer",
+          "--initialize-at-build-time=org.apache.logging.log4j",
+          "--initialize-at-build-time=org.apache.logging.slf4j",
+          "--initialize-at-build-time=com.mojang.logging",
+          "--initialize-at-build-time=org.slf4j",
+          "--initialize-at-build-time=org.fusesource.jansi",
           "--initialize-at-run-time=io.netty", // TODO can we cut this down?
+          "--initialize-at-run-time=net.minecraft.core.registries.BuiltInRegistries",
           "@" + CLASSPATH_FILE,
-          "-jar", paperJar().toString()
+          "org.bukkit.craftbukkit.Main" // entry point via main class
       )
           .inheritIO()
           .directory(workingDir().toFile())
