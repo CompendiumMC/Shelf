@@ -41,8 +41,9 @@ public record CompileExecution(
           "-H:IncludeResources=log4j2.+",
           "-H:ConfigurationFileDirectories=" + nativeImageConfiguration(),
           "-H:+ReportExceptionStackTraces",
-          "-H:IncludeResources=/data/.*", // accessed via FileSystem
+          "-H:IncludeResources=data/.*", // accessed via FileSystem
           "--no-fallback", // we don't want that
+          "--enable-monitoring=jfr", // Minecraft uses JFR
           "--enable-url-protocols=https", // allow accessing URLs with https protocol
           "--trace-object-instantiation=com.sun.jmx.mbeanserver.JmxMBeanServer",
           "--initialize-at-build-time=org.apache.logging.log4j",
