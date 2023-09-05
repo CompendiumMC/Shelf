@@ -18,11 +18,12 @@ public record CompileExecution(
 
 
   private static final String CLASSPATH_FILE = "classpath";
+  private static final Path FEATURES_JAR = Path.of("extra/Features.jar");
 
   @Override
   public CompileResult awaitResult() throws ExecutionFailedException {
     Stream<Path> librariesStream = libraries().stream();
-    String classpathJoined = Stream.concat(Stream.of(paperJar()), librariesStream)
+    String classpathJoined = Stream.concat(Stream.of(FEATURES_JAR, paperJar()), librariesStream)
         .map(Path::toString)
         .collect(Collectors.joining(File.pathSeparator));
     try {
@@ -38,6 +39,7 @@ public record CompileExecution(
           "server",
           "-H:+BuildReport",
           "-Ob", // fast build
+          "-g", // produce some debug information
           "-H:IncludeResources=log4j2.+",
           "-H:ConfigurationFileDirectories=" + nativeImageConfiguration(),
           "-H:+ReportExceptionStackTraces",
