@@ -9,6 +9,7 @@ import io.github.compendiummc.shelf.process.PatchResult;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Optional;
 
 public class CommandRunner {
 
@@ -29,7 +30,10 @@ public class CommandRunner {
     if (workingDir == null) {
       workingDir = Path.of("."); // current dir
     }
-    Execution<PatchResult> patch = Execution.patch(paperClipJar);
+    Path nativeImagePath = command.nativeImageExecutable().orElse(Path.of("native-image"));
+    Path javaPath = Optional.ofNullable(nativeImagePath.getParent()).map(p -> p.resolve("java"))
+        .orElse(Path.of("java"));
+    Execution<PatchResult> patch = Execution.patch(paperClipJar, javaPath);
     PatchResult patchResult = patch.awaitResult();
     patchResult.checkForFailure();
 
@@ -43,7 +47,6 @@ public class CommandRunner {
       throw new ExecutionFailedException("Failed to extract version info", e);
     }
 
-    Path nativeImagePath = command.nativeImageExecutable().orElse(Path.of("native-image"));
     Path nativeImageConfiguration = command.nativeImageConfigurationDirectory().orElseThrow();
 
     Execution<CompileResult> compiled = Execution.compile(workingDir, nativeImagePath, nativeImageConfiguration, paperJarPath, libraries);

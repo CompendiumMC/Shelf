@@ -39,13 +39,15 @@ public record CompileExecution(
           "server",
           "-H:+BuildReport",
           "-Ob", // fast build
+          // "-march=native",
           "-g", // produce some debug information
+          // "--gc=G1", // Linux only
           "-H:IncludeResources=log4j2.+",
           "-H:ConfigurationFileDirectories=" + nativeImageConfiguration(),
           "-H:+ReportExceptionStackTraces",
           "-H:IncludeResources=data/.*", // accessed via FileSystem
+          "--enable-monitoring=jfr,jmxserver", // Minecraft uses JFR, Spigot uses JMX (Watchdog)
           "--no-fallback", // we don't want that
-          "--enable-monitoring=jfr", // Minecraft uses JFR
           "--enable-url-protocols=https", // allow accessing URLs with https protocol
           "--trace-object-instantiation=com.sun.jmx.mbeanserver.JmxMBeanServer",
           "--initialize-at-build-time=org.apache.logging.log4j",
