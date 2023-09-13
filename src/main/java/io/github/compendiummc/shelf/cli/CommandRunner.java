@@ -11,7 +11,13 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Optional;
 
+import static io.github.compendiummc.shelf.os.OsSupport.isWindows;
+
 public class CommandRunner {
+
+  private static final Path BIN = Path.of("bin");
+  private static final Path JAVA_EXECUTABLE = BIN.resolve(isWindows() ? "java.exe" : "java");
+  private static final Path NATIVE_IMAGE_EXECUTABLE = BIN.resolve(isWindows() ? "native-image.cmd" : "native-image");
 
   public void run(String[] args) throws ExecutionFailedException {
     ShelfCommand shelfCommand = new ShelfCommandParser().parseOrExit(args);
@@ -30,9 +36,11 @@ public class CommandRunner {
     if (workingDir == null) {
       workingDir = Path.of("."); // current dir
     }
-    Path nativeImagePath = command.nativeImageExecutable().orElse(Path.of("native-image"));
-    Path javaPath = Optional.ofNullable(nativeImagePath.getParent()).map(p -> p.resolve("java"))
-        .orElse(Path.of("java"));
+    Path javaBaseDir = command.graalHome()
+        .or(CommandRunner::findJavaHomeInEnv)
+        .orElseGet(CommandRunner::findJavaHomeInProperties);
+    Path nativeImagePath = javaBaseDir.resolve(NATIVE_IMAGE_EXECUTABLE);
+    Path javaPath = javaBaseDir.resolve(JAVA_EXECUTABLE);
     Execution<PatchResult> patch = Execution.patch(paperClipJar, javaPath);
     PatchResult patchResult = patch.awaitResult();
     patchResult.checkForFailure();
@@ -52,6 +60,15 @@ public class CommandRunner {
     Execution<CompileResult> compiled = Execution.compile(workingDir, nativeImagePath, nativeImageConfiguration, paperJarPath, libraries);
     CompileResult compileResult = compiled.awaitResult();
     compileResult.checkForFailure();
+  }
+
+  private static Optional<Path> findJavaHomeInEnv() {
+    String javaHome = System.getenv("JAVA_HOME");
+    return Optional.ofNullable(javaHome).map(Path::of);
+  }
+
+  private static Path findJavaHomeInProperties() {
+    return Path.of(System.getProperty("java.home"));
   }
 
 }
