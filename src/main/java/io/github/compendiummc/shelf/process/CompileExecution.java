@@ -1,5 +1,7 @@
 package io.github.compendiummc.shelf.process;
 
+import io.github.compendiummc.shelf.App;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,14 +18,12 @@ public record CompileExecution(
     Collection<Path> libraries
 ) implements Execution<CompileResult> {
 
-
   private static final String CLASSPATH_FILE = "classpath";
-  private static final Path FEATURES_JAR = Path.of("extra/Features.jar");
 
   @Override
   public CompileResult awaitResult() throws ExecutionFailedException {
     Stream<Path> librariesStream = libraries().stream();
-    String classpathJoined = Stream.concat(Stream.of(FEATURES_JAR, paperJar()), librariesStream)
+    String classpathJoined = Stream.concat(Stream.of(App.FEATURES_JAR, paperJar()), librariesStream)
         .map(Path::toString)
         .collect(Collectors.joining(File.pathSeparator));
     try {

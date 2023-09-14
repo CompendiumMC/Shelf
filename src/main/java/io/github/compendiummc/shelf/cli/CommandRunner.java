@@ -1,5 +1,6 @@
 package io.github.compendiummc.shelf.cli;
 
+import io.github.compendiummc.shelf.App;
 import io.github.compendiummc.shelf.PaperclipJar;
 import io.github.compendiummc.shelf.process.CompileResult;
 import io.github.compendiummc.shelf.process.Execution;
@@ -7,7 +8,10 @@ import io.github.compendiummc.shelf.process.ExecutionFailedException;
 import io.github.compendiummc.shelf.process.PatchResult;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Collection;
 import java.util.Optional;
 
@@ -57,9 +61,27 @@ public class CommandRunner {
 
     Path nativeImageConfiguration = command.nativeImageConfigurationDirectory().orElseThrow();
 
+    extractFeatures(workingDir);
+
     Execution<CompileResult> compiled = Execution.compile(workingDir, nativeImagePath, nativeImageConfiguration, paperJarPath, libraries);
     CompileResult compileResult = compiled.awaitResult();
     compileResult.checkForFailure();
+  }
+
+  private static void extractFeatures(Path workingDir) {
+    try {
+      try (InputStream inputStream = CommandRunner.class.getModule().getResourceAsStream("Features.jar")) {
+        if (inputStream == null) {
+          System.out.println("Features.jar not found in module");
+          return;
+        }
+        Path featuresJar = workingDir.resolve(App.FEATURES_JAR);
+        Files.createDirectories(featuresJar.getParent());
+        Files.copy(inputStream, featuresJar, StandardCopyOption.REPLACE_EXISTING);
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private static Optional<Path> findJavaHomeInEnv() {

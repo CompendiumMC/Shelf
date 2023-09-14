@@ -38,8 +38,17 @@ java {
         languageVersion.set(JavaLanguageVersion.of(20))
     }
 }
+tasks.withType<Jar> {
+    // include Features.jar in Shelf.jar
+    val jarTaskSub = tasks.findByPath(":Features:jar") as Jar
+    dependsOn.add(jarTaskSub)
+    val featuresJar = jarTaskSub.archiveFile.get()
+    from(featuresJar)
+}
 
 application {
     // Define the main class for the application.
     mainClass.set("io.github.compendiummc.shelf.App")
+    mainModule.set("shelf.app")
+    resources
 }
