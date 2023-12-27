@@ -35,10 +35,10 @@ public final class Target_net_minecraft_util_profiling_jfr_JfrProfiler {
   }
 
   @Substitute
-  public void onPacketSent(int protocolId, int packetId, SocketAddress remoteAddress, int bytes) { }
+  public void onPacketSent(Target_net_minecraft_network_ConnectionProtocol state, int packetId, SocketAddress remoteAddress, int bytes) { }
 
   @Substitute
-  public void onPacketReceived(int protocolId, int packetId, SocketAddress remoteAddress, int bytes) { }
+  public void onPacketReceived(Target_net_minecraft_network_ConnectionProtocol state, int packetId, SocketAddress remoteAddress, int bytes) { }
 
   @Substitute
   public void onServerTick(float tickTime) { }
@@ -54,5 +54,8 @@ public final class Target_net_minecraft_util_profiling_jfr_JfrProfiler {
 
   @TargetClass(className = "net.minecraft.resources.ResourceKey")
   public static final class Target_net_minecraft_resources_ResourceKey<T> {
+  }
+  @TargetClass(className = "net.minecraft.network.ConnectionProtocol")
+  public static final class Target_net_minecraft_network_ConnectionProtocol {
   }
 }

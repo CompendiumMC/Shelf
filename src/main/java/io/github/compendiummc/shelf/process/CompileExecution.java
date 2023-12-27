@@ -38,16 +38,20 @@ public record CompileExecution(
           "-o",
           "server",
           "-H:+BuildReport",
-          "-Ob", // fast build
-          // "-march=native",
+          // "-Ob", // fast build
+          "-march=native",
+          // "--pgo-instrument",
+          "--pgo=profile/00.iprof",
           "-g", // produce some debug information
-          // "--gc=G1", // Linux only
+          "--gc=G1", // Linux only
           "-H:IncludeResources=log4j2.+",
           "-H:ConfigurationFileDirectories=" + nativeImageConfiguration(),
           "-H:+ReportExceptionStackTraces",
           "-H:IncludeResources=data/.*", // accessed via FileSystem
+          "-H:IncludeResources=META-INF/MANIFEST.MF", // accessed via io.papermc.paper.util.JarManifests
           "--enable-monitoring=jfr,jmxserver", // Minecraft uses JFR, Spigot uses JMX (Watchdog)
           "--no-fallback", // we don't want that
+          "--strict-image-heap",
           "--enable-url-protocols=https", // allow accessing URLs with https protocol
           "--trace-object-instantiation=com.sun.jmx.mbeanserver.JmxMBeanServer",
           "--initialize-at-build-time=org.apache.logging.log4j",
@@ -55,7 +59,7 @@ public record CompileExecution(
           "--initialize-at-build-time=com.mojang.logging",
           "--initialize-at-build-time=org.slf4j",
           "--initialize-at-build-time=org.fusesource.jansi",
-          "--initialize-at-run-time=io.netty", // TODO can we cut this down?
+          "--initialize-at-build-time=net.minecrell.terminalconsole.TCALookup",
           "--initialize-at-run-time=net.minecraft.core.registries.BuiltInRegistries",
           "@" + CLASSPATH_FILE,
           "org.bukkit.craftbukkit.Main" // entry point via main class
