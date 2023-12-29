@@ -49,6 +49,7 @@ public record CompileExecution(
           "-H:+ReportExceptionStackTraces",
           "-H:IncludeResources=data/.*", // accessed via FileSystem
           "-H:IncludeResources=META-INF/MANIFEST.MF", // accessed via io.papermc.paper.util.JarManifests
+          "--features=io.github.compendiummc.shelf.features.plugin.PluginFeature",
           "--enable-monitoring=jfr,jmxserver", // Minecraft uses JFR, Spigot uses JMX (Watchdog)
           "--no-fallback", // we don't want that
           "--strict-image-heap",
@@ -60,6 +61,8 @@ public record CompileExecution(
           "--initialize-at-build-time=org.slf4j",
           "--initialize-at-build-time=org.fusesource.jansi",
           "--initialize-at-build-time=net.minecrell.terminalconsole.TCALookup",
+          "--initialize-at-build-time=io.github.compendiummc.shelf.features.plugin.PluginContainer",
+          "--initialize-at-build-time=io.github.compendiummc.PluginContainer",
           "--initialize-at-run-time=net.minecraft.core.registries.BuiltInRegistries",
           "@" + CLASSPATH_FILE,
           "org.bukkit.craftbukkit.Main" // entry point via main class

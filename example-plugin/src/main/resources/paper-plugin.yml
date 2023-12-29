@@ -1,0 +1,5 @@
+name: ExamplePlugin
+version: "1.0.0"
+main: io.github.compendiummc.example.ExamplePlugin
+description: "An example plugin"
+api-version: "1.20"
