@@ -1,58 +1,41 @@
 package io.github.compendiummc.shelf.features.plugin;
 
+import com.destroystokyo.paper.utils.PaperPluginLogger;
 import io.papermc.paper.plugin.entrypoint.Entrypoint;
 import io.papermc.paper.plugin.entrypoint.EntrypointHandler;
-import io.papermc.paper.plugin.entrypoint.classloader.PaperPluginClassLoader;
 import io.papermc.paper.plugin.provider.PluginProvider;
+import io.papermc.paper.plugin.provider.configuration.PaperPluginMeta;
+import io.papermc.paper.plugin.provider.configuration.type.PermissionConfiguration;
+import io.papermc.paper.plugin.provider.configuration.type.PluginDependencyLifeCycle;
 import io.papermc.paper.plugin.provider.type.PluginFileType;
 import io.papermc.paper.plugin.provider.type.paper.PaperPluginParent;
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
+import org.bukkit.permissions.Permission;
+import org.bukkit.permissions.PermissionDefault;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.PluginBase;
+import org.bukkit.plugin.PluginLoadOrder;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.graalvm.nativeimage.hosted.Feature;
+import org.graalvm.nativeimage.hosted.RuntimeClassInitialization;
+import org.graalvm.nativeimage.hosted.RuntimeReflection;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.jar.JarFile;
 import java.util.stream.Stream;
+
+import static org.graalvm.nativeimage.hosted.RuntimeClassInitialization.initializeAtBuildTime;
 
 @SuppressWarnings("UnstableApiUsage")
 public class PluginFeature implements Feature {
 
-  public PluginFeature() {
-    System.out.println("Found plugin PluginFeature!");
-  }
-
   @Override
   public void beforeAnalysis(BeforeAnalysisAccess access) {
-    List<Class<? extends JavaPlugin>> plugins = new ArrayList<>();
-/*    OptionSet optionSet = getOptionSet();
-    try {
-      PluginInitializerManager.load(optionSet);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }*/
-    /*LaunchEntryPointHandler launchEntryPointHandler = LaunchEntryPointHandler.INSTANCE;
-    List<Class<? extends JavaPlugin>> plugins = new ArrayList<>();
-    for (PluginProvider<JavaPlugin> provider : launchEntryPointHandler.get(Entrypoint.PLUGIN).getRegisteredProviders()) {
-      Class<? extends JavaPlugin> clazz = provider.createInstance().getClass();
-      access.registerAsUsed(clazz);
-      plugins.add(clazz);
-      // Target_org_bukkit_craftbukkit_CraftServer.PLUGINS.add(provider);
-      System.out.println("registering " + provider);
-    }*/
-    Path path = Path.of(".plugins");
     Path pluginsPath = Path.of("plugins");
 
     class Accessor {
@@ -61,7 +44,9 @@ public class PluginFeature implements Feature {
       static {
         MethodHandles.Lookup lookup = MethodHandles.lookup();
         try {
-          MethodHandle classLoader = lookup.findGetter(PaperPluginParent.class, "classLoader", PaperPluginClassLoader.class);
+          Field cl = PaperPluginParent.class.getDeclaredField("classLoader");
+          cl.setAccessible(true);
+          MethodHandle classLoader = lookup.unreflectGetter(cl);
           Field field = findEnclosingInstanceAccessor();
           MethodHandle getEnclosing = lookup.unreflectGetter(field);
           GET_CLASS_LOADER = MethodHandles.filterReturnValue(getEnclosing, classLoader);
@@ -81,12 +66,37 @@ public class PluginFeature implements Feature {
       private static Field findEnclosingInstanceAccessor() {
         for (Field declaredField : PaperPluginParent.PaperServerPluginProvider.class.getDeclaredFields()) {
           if (declaredField.getType() == PaperPluginParent.class) {
+            declaredField.setAccessible(true);
             return declaredField;
           }
         }
         throw new AssertionError("Field not found");
       }
     }
+    access.registerAsUsed(JavaPlugin.class);
+    RuntimeReflection.register(JavaPlugin.class);
+    initializeAtBuildTime(JavaPlugin.class);
+    initializeAtBuildTime(PluginBase.class);
+    initializeAtBuildTime(Plugin.class);
+    initializeAtBuildTime(PluginContainer.class);
+    initializeAtBuildTime(PluginContainer.Entry.class);
+    initializeAtBuildTime(PluginContainer.SimplePluginProvider.class);
+    initializeAtBuildTime(Entrypoint.class);
+    initializeAtBuildTime(PaperPluginLogger.class);
+    initializeAtBuildTime(PaperPluginParent.class);
+    initializeAtBuildTime(PaperPluginParent.PaperBootstrapProvider.class);
+    initializeAtBuildTime(PaperPluginParent.PaperServerPluginProvider.class);
+    initializeAtBuildTime(PaperPluginMeta.class);
+    initializeAtBuildTime(PluginDependencyLifeCycle.class);
+
+    initializeAtBuildTime(PluginLoadOrder.class);
+
+    initializeAtBuildTime(PermissionConfiguration.class);
+    initializeAtBuildTime(Permission.class);
+    initializeAtBuildTime(PermissionDefault.class);
+
+    initializeAtBuildTime(forName("io.papermc.paper.plugin.provider.type.paper.PaperPluginProviderFactory"));
+    System.out.println("JavaPlugin: " + JavaPlugin.class.getClassLoader());
     try (Stream<Path> stream = Files.walk(pluginsPath, 1, FileVisitOption.FOLLOW_LINKS)) {
       Path[] array = stream.filter(p -> Files.isRegularFile(p))
           .toArray(Path[]::new);
@@ -100,12 +110,22 @@ public class PluginFeature implements Feature {
         pluginFileType.register(new EntrypointHandler() {
           @Override
           public <T> void register(Entrypoint<T> entrypoint, PluginProvider<T> provider) {
+            if (entrypoint != Entrypoint.PLUGIN) {
+              throw new UnsupportedOperationException("only PLUGIN supported");
+            }
             String mainClass = provider.getMeta().getMainClass();
             ClassLoader classLoader = Accessor.getClassLoader(provider);
+            System.out.println(classLoader);
             try {
-              var main = Class.forName(mainClass, false, classLoader).asSubclass(JavaPlugin.class);
+              var main = Class.forName(mainClass, true, classLoader).asSubclass(JavaPlugin.class);
               access.registerAsUsed(main);
-              plugins.add(main);
+              initializeAtBuildTime(mainClass);
+              PluginContainer.SimplePluginProvider betterProvider = new PluginContainer.SimplePluginProvider(
+                  provider.getSource(),
+                  provider.getMeta(),
+                  main
+              );
+              PluginContainer.PLUGINS.add(new PluginContainer.Entry<T>(entrypoint, (PluginProvider<T>) betterProvider));
             } catch (ClassNotFoundException e) {
               throw new RuntimeException(e);
             }
@@ -120,33 +140,14 @@ public class PluginFeature implements Feature {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    System.out.println(path.toAbsolutePath());
-    try (OutputStream outputStream = Files.newOutputStream(path);
-         ObjectOutputStream oos = new ObjectOutputStream(outputStream)
-    ) {
-      oos.writeObject(plugins);
-      System.out.println("Wrote plugins " + plugins);
-    } catch (IOException e) {
+  }
+
+  private static Class<?> forName(String binaryName) {
+    try {
+      return Class.forName(binaryName);
+    } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
   }
 
-  private static OptionSet getOptionSet() {
-    OptionParser parser = new OptionParser() {
-      {
-        this.acceptsAll(List.of("P", "plugins"), "Plugin directory to use")
-            .withRequiredArg()
-            .ofType(File.class)
-            .defaultsTo(new File("plugins"))
-            .describedAs("Plugin directory");
-
-        this.acceptsAll(List.of("b", "bukkit-settings"), "File for bukkit settings")
-            .withRequiredArg()
-            .ofType(File.class)
-            .defaultsTo(new File("bukkit.yml"))
-            .describedAs("Yml file");
-      }
-    };
-    return parser.parse();
-  }
 }
