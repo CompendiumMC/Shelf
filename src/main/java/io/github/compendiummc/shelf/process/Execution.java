@@ -5,8 +5,8 @@ import java.util.Collection;
 
 public sealed interface Execution<E extends ExecutionResult> permits CompileExecution, PatchExecution {
 
-  static Execution<PatchResult> patch(Path paperClipJar, Path javaPath) {
-    return new PatchExecution(paperClipJar, javaPath);
+  static Execution<PatchResult> patch(Path paperClipJar, Path serverPath, Path javaPath) {
+    return new PatchExecution(paperClipJar, serverPath, javaPath);
   }
 
   static Execution<CompileResult> compile(

@@ -13,6 +13,9 @@ interface CompileCommand {
   @Parameter(index = 0)
   Path paperclipJar();
 
+  @Option(names = {"--server-path", "-s"})
+  Optional<Path> serverPath();
+
   @Option(names = {"--graal-home", "-g"})
   Optional<Path> graalHome();
 

@@ -35,13 +35,14 @@ public record CompileExecution(
     try {
       Process process = new ProcessBuilder(
           nativeImagePath.toString(),
+          "-H:+UnlockExperimentalVMOptions",
           "-o",
           "server",
           "-H:+BuildReport",
-          // "-Ob", // fast build
+          "-Ob", // fast build
           "-march=native",
           // "--pgo-instrument",
-          "--pgo=profile/00.iprof",
+          // "--pgo=profile/00.iprof",
           "-g", // produce some debug information
           "--gc=G1", // Linux only
           "-H:IncludeResources=log4j2.+",
@@ -52,7 +53,6 @@ public record CompileExecution(
           "--features=io.github.compendiummc.shelf.features.plugin.PluginFeature",
           "--enable-monitoring=jfr,jmxserver", // Minecraft uses JFR, Spigot uses JMX (Watchdog)
           "--no-fallback", // we don't want that
-          "--strict-image-heap",
           "--enable-url-protocols=https", // allow accessing URLs with https protocol
           "--trace-object-instantiation=com.sun.jmx.mbeanserver.JmxMBeanServer",
           "--initialize-at-build-time=org.apache.logging.log4j",

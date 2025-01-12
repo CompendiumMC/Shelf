@@ -2,6 +2,10 @@ package io.github.compendiummc.shelf.features;
 
 import com.oracle.svm.core.annotate.Substitute;
 import com.oracle.svm.core.annotate.TargetClass;
+import net.minecraft.network.ConnectionProtocol;
+import net.minecraft.network.protocol.PacketType;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.ChunkPos;
 
 import java.net.SocketAddress;
 
@@ -28,17 +32,17 @@ public final class Target_net_minecraft_util_profiling_jfr_JfrProfiler {
 
   @Substitute
   public Target_net_minecraft_util_profiling_jfr_callback_ProfileDuration onChunkGenerate(
-      Target_net_minecraft_world_level_ChunkPos chunkPos,
-      Target_net_minecraft_resources_ResourceKey<?> world,
+      ChunkPos chunkPos,
+      ResourceKey<?> world,
       String targetStatus) {
     return null;
   }
 
   @Substitute
-  public void onPacketSent(Target_net_minecraft_network_ConnectionProtocol state, int packetId, SocketAddress remoteAddress, int bytes) { }
+  public void onPacketSent(ConnectionProtocol state, PacketType<?> packetType, SocketAddress remoteAddress, int bytes) { }
 
   @Substitute
-  public void onPacketReceived(Target_net_minecraft_network_ConnectionProtocol state, int packetId, SocketAddress remoteAddress, int bytes) { }
+  public void onPacketReceived(ConnectionProtocol state, PacketType<?> packetType, SocketAddress remoteAddress, int bytes) { }
 
   @Substitute
   public void onServerTick(float tickTime) { }
@@ -48,14 +52,4 @@ public final class Target_net_minecraft_util_profiling_jfr_JfrProfiler {
   public static final class Target_net_minecraft_util_profiling_jfr_callback_ProfileDuration {
   }
 
-  @TargetClass(className = "net.minecraft.world.level.ChunkPos")
-  public static final class Target_net_minecraft_world_level_ChunkPos {
-  }
-
-  @TargetClass(className = "net.minecraft.resources.ResourceKey")
-  public static final class Target_net_minecraft_resources_ResourceKey<T> {
-  }
-  @TargetClass(className = "net.minecraft.network.ConnectionProtocol")
-  public static final class Target_net_minecraft_network_ConnectionProtocol {
-  }
 }

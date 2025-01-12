@@ -36,16 +36,17 @@ public class CommandRunner {
   private static void handleCompile(String[] array) throws ExecutionFailedException {
     CompileCommand command = new CompileCommandParser().parseOrExit(array);
     Path paperClipJar = command.paperclipJar();
-    Path workingDir = paperClipJar.getParent();
-    if (workingDir == null) {
-      workingDir = Path.of("."); // current dir
-    }
+    Path workingDir = command.serverPath().orElseGet(() -> paperClipJar.toAbsolutePath().getParent());
     Path javaBaseDir = command.graalHome()
         .or(CommandRunner::findJavaHomeInEnv)
         .orElseGet(CommandRunner::findJavaHomeInProperties);
     Path nativeImagePath = javaBaseDir.resolve(NATIVE_IMAGE_EXECUTABLE);
     Path javaPath = javaBaseDir.resolve(JAVA_EXECUTABLE);
-    Execution<PatchResult> patch = Execution.patch(paperClipJar, javaPath);
+    Execution<PatchResult> patch = Execution.patch(
+        paperClipJar,
+        workingDir,
+        javaPath
+    );
     PatchResult patchResult = patch.awaitResult();
     patchResult.checkForFailure();
 

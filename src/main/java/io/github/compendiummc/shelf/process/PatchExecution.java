@@ -3,7 +3,7 @@ package io.github.compendiummc.shelf.process;
 import java.io.IOException;
 import java.nio.file.Path;
 
-record PatchExecution(Path paperclipJar, Path javaPath) implements Execution<PatchResult> {
+record PatchExecution(Path paperclipJar, Path serverPath, Path javaPath) implements Execution<PatchResult> {
 
   @Override
   public PatchResult awaitResult() throws ExecutionFailedException {
@@ -11,7 +11,7 @@ record PatchExecution(Path paperclipJar, Path javaPath) implements Execution<Pat
       Process process = new ProcessBuilder(
           javaPath.toString(),
           "-Dpaperclip.patchonly=true",
-          "-DbundlerRepoDir=" + paperclipJar().getParent(),
+          "-DbundlerRepoDir=" + serverPath(),
           "-jar", paperclipJar().toString()
       )
           .inheritIO()
