@@ -60,7 +60,7 @@ public class CommandRunner {
       throw new ExecutionFailedException("Failed to extract version info", e);
     }
 
-    Path nativeImageConfiguration = command.nativeImageConfigurationDirectory().orElseThrow();
+    Path nativeImageConfiguration = command.nativeImageConfigurationDirectory().orElseThrow().toAbsolutePath();
 
     extractFeatures(workingDir);
 

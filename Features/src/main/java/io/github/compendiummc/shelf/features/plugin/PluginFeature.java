@@ -1,8 +1,9 @@
 package io.github.compendiummc.shelf.features.plugin;
 
 import com.destroystokyo.paper.utils.PaperPluginLogger;
+import io.papermc.paper.plugin.configuration.PluginMeta;
 import io.papermc.paper.plugin.entrypoint.Entrypoint;
-import io.papermc.paper.plugin.entrypoint.EntrypointHandler;
+import io.papermc.paper.plugin.entrypoint.classloader.PaperPluginClassLoader;
 import io.papermc.paper.plugin.provider.PluginProvider;
 import io.papermc.paper.plugin.provider.configuration.PaperPluginMeta;
 import io.papermc.paper.plugin.provider.configuration.type.PermissionConfiguration;
@@ -16,12 +17,14 @@ import org.bukkit.plugin.PluginBase;
 import org.bukkit.plugin.PluginLoadOrder;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.graalvm.nativeimage.hosted.Feature;
-import org.graalvm.nativeimage.hosted.RuntimeClassInitialization;
 import org.graalvm.nativeimage.hosted.RuntimeReflection;
 
+import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -73,6 +76,7 @@ public class PluginFeature implements Feature {
         throw new AssertionError("Field not found");
       }
     }
+
     access.registerAsUsed(JavaPlugin.class);
     RuntimeReflection.register(JavaPlugin.class);
     initializeAtBuildTime(JavaPlugin.class);
@@ -107,35 +111,23 @@ public class PluginFeature implements Feature {
         if (pluginFileType == null) {
           continue;
         }
-        pluginFileType.register(new EntrypointHandler() {
-          @Override
-          public <T> void register(Entrypoint<T> entrypoint, PluginProvider<T> provider) {
-            if (entrypoint != Entrypoint.PLUGIN) {
-              throw new UnsupportedOperationException("only PLUGIN supported");
-            }
-            String mainClass = provider.getMeta().getMainClass();
-            ClassLoader classLoader = Accessor.getClassLoader(provider);
-            System.out.println(classLoader);
-            try {
-              var main = Class.forName(mainClass, true, classLoader).asSubclass(JavaPlugin.class);
-              access.registerAsUsed(main);
-              initializeAtBuildTime(mainClass);
-              PluginContainer.SimplePluginProvider betterProvider = new PluginContainer.SimplePluginProvider(
-                  provider.getSource(),
-                  provider.getMeta(),
-                  main
+        PluginMeta config = pluginFileType.getConfig(file);
+        PluginContainer.PLUGINS.add(
+            () -> {
+              PaperPluginClassLoader loader;
+              Class<?> main;
+              try {
+                loader = new PaperPluginClassLoader(PaperPluginLogger.getLogger(config), p, file, (PaperPluginMeta) config, this.getClass().getClassLoader(), new URLClassLoader(new URL[0]));
+                main = loader.loadClass(config.getMainClass());
+              } catch (IOException | ClassNotFoundException e) {
+                throw new RuntimeException(e);
+              }
+              return new PluginContainer.Entry<>(
+                  Entrypoint.PLUGIN,
+                  new PluginContainer.SimplePluginProvider(p, config, main.asSubclass(JavaPlugin.class))
               );
-              PluginContainer.PLUGINS.add(new PluginContainer.Entry<T>(entrypoint, (PluginProvider<T>) betterProvider));
-            } catch (ClassNotFoundException e) {
-              throw new RuntimeException(e);
             }
-          }
-
-          @Override
-          public void enter(Entrypoint<?> entrypoint) {
-
-          }
-        }, file, p);
+        );
       }
     } catch (Exception e) {
       throw new RuntimeException(e);

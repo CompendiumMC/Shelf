@@ -16,15 +16,16 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.jar.JarFile;
 
 @SuppressWarnings("UnstableApiUsage")
 public class PluginContainer {
-  static final List<Entry<?>> PLUGINS = new ArrayList<>();
+  static final List<Supplier<Entry<?>>> PLUGINS = new ArrayList<>();
 
   static void registerPlugins() {
-    for (Entry<?> entry : PLUGINS) {
-      registerPlugin(entry);
+    for (var entry : PLUGINS) {
+      registerPlugin(entry.get());
     }
     LaunchEntryPointHandler.INSTANCE.enter(Entrypoint.PLUGIN);
   }

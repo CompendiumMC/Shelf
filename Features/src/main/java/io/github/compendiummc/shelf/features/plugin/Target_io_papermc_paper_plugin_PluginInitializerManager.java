@@ -11,6 +11,6 @@ public final class Target_io_papermc_paper_plugin_PluginInitializerManager {
   @Substitute
   public static void load(OptionSet set) throws Exception {
     // only init, do not attempt to load any plugins
-    io.papermc.paper.plugin.PluginInitializerManager.init(set);
+    PluginInitializerManager.init(set);
   }
 }

@@ -37,13 +37,16 @@ public record CompileExecution(
           nativeImagePath.toString(),
           "-H:+UnlockExperimentalVMOptions",
           "-o",
-          "server",
+          "out/server",
           "-H:+BuildReport",
           "-Ob", // fast build
-          "-march=native",
+          // "-O3", // optimized build
+          // "-march=native",
           // "--pgo-instrument",
           // "--pgo=profile/00.iprof",
-          "-g", // produce some debug information
+          // "-g", // produce some debug information
+          // "-H:+SourceLevelDebug", // produce some more debug info
+          // "-H:-DeleteLocalSymbols", // avoid deleting debug info
           "--gc=G1", // Linux only
           "-H:IncludeResources=log4j2.+",
           "-H:ConfigurationFileDirectories=" + nativeImageConfiguration(),
